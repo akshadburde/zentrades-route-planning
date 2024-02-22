@@ -1,5 +1,5 @@
 import React from "react";
-import { GoogleMap, useLoadScript, Marker } from "@react-google-maps/api";
+import { useLoadScript } from "@react-google-maps/api";
 import { useState, useMemo } from "react";
 import usePlacesAutocomplete, {
   getGeocode,
@@ -11,7 +11,6 @@ import {
   ComboboxPopover,
   ComboboxList,
   ComboboxOption,
-  ComboboxOptionText,
 } from "@reach/combobox";
 import "@reach/combobox/styles.css";
 import {
@@ -21,6 +20,8 @@ import {
   Pin,
 } from "@vis.gl/react-google-maps";
 import Directions from "./Directions";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faXmark } from "@fortawesome/free-solid-svg-icons";
 
 export default function AddressInput() {
   const { isLoaded } = useLoadScript({
@@ -35,9 +36,16 @@ export default function AddressInput() {
 function Map() {
   const center = useMemo(() => ({ lat: 18.51, lng: 73.85 }), []);
   const [selected, setSelected] = useState(null);
-  const [jobLocations, setSelectedList] = useState(null);
+  const [jobLocations, setJobLocations] = useState(null);
   const [technicianLocation, setTechnicianLocation] = useState(null);
   const [showDirections, setShowDirections] = useState(false);
+
+  const removeJobLocation = (jobLocation) => {
+    const newJobLocations = jobLocations.filter(
+      (jobLoc) => jobLoc.address !== jobLocation.address
+    );
+    setJobLocations(newJobLocations);
+  };
 
   return (
     <div id="address-input-container">
@@ -52,9 +60,6 @@ function Map() {
               defaultZoom={15}
               defaultCenter={center}
             >
-              {/*{selected && <AdvancedMarker position={selected}>*/}
-              {/*  <Pin background={"grey"} borderColor={"green"} glyphColor={"purple"}/>*/}
-              {/*</AdvancedMarker>}*/}
               {jobLocations &&
                 !showDirections &&
                 jobLocations.map((item, index) => (
@@ -75,18 +80,10 @@ function Map() {
               {jobLocations && technicianLocation && showDirections && (
                 <>
                   <Directions
-                    origin={technicianLocation.address}
-                    destination={jobLocations[jobLocations.length - 1].address}
+                    origin={technicianLocation}
+                    destination={jobLocations[jobLocations.length - 1]}
                     jobLocations={jobLocations}
                   />
-                  {/* <Directions
-                      origin={jobLocations[0].address}
-                      destination={jobLocations[1].address}
-                    />
-                    <Directions
-                      origin={jobLocations[1].address}
-                      destination={jobLocations[2].address}
-                    /> */}
                 </>
               )}
             </Map_>
@@ -101,7 +98,7 @@ function Map() {
                     let newJobLocations = [];
                     if (jobLocations === null) newJobLocations = [selected];
                     else newJobLocations = [...jobLocations, selected];
-                    setSelectedList(newJobLocations);
+                    setJobLocations(newJobLocations);
                   }}
                 >
                   Add
@@ -112,11 +109,25 @@ function Map() {
                   jobLocations.map((item, index) => {
                     return (
                       <a
-                        href="#"
                         class="list-group-item list-group-item-action"
                         aria-current="true"
                       >
-                        {item.address}
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <div>{item.address}</div>
+                          <div>
+                            <FontAwesomeIcon
+                              icon={faXmark}
+                              onClick={() => removeJobLocation(item)}
+                              style={{ cursor: "pointer" }}
+                            />
+                          </div>
+                        </div>
                       </a>
                     );
                   })}
@@ -137,23 +148,39 @@ function Map() {
               <div class="list-group">
                 {technicianLocation && (
                   <a
-                    href="#"
                     class="list-group-item list-group-item-action"
                     aria-current="true"
                   >
-                    {technicianLocation.address}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <div>{technicianLocation.address}</div>
+                      <div>
+                        <FontAwesomeIcon
+                          icon={faXmark}
+                          onClick={() => setTechnicianLocation(null)}
+                          style={{ cursor: "pointer" }}
+                        />
+                      </div>
+                    </div>
                   </a>
                 )}
               </div>
             </div>
-            <div style={{ marginTop: 20 }}>
-              <button
-                className="btn btn-primary"
-                onClick={() => setShowDirections(!showDirections)}
-              >
-                Get Directions
-              </button>
-            </div>
+            {jobLocations && technicianLocation && (
+              <div style={{ marginTop: 20 }}>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setShowDirections(!showDirections)}
+                >
+                  Get Directions
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </APIProvider>
@@ -177,12 +204,6 @@ const PlacesAutocomplete = ({ setSelected }) => {
     const results = await getGeocode({ address });
     const { lat, lng } = await getLatLng(results[0]);
     setSelected({ address, position: { lat, lng } });
-    // let newSelectedList = [];
-    // if (selectedList === null)
-    //   newSelectedList = [{ address, position: { lat, lng } }];
-    // else
-    //   newSelectedList = [...selectedList, { address, position: { lat, lng } }];
-    // setSelectedList(newSelectedList);
   };
 
   return (
@@ -211,14 +232,6 @@ const PlacesAutocomplete = ({ setSelected }) => {
           </ComboboxList>
         </ComboboxPopover>
       </Combobox>
-      {/* <div id="btn-container">
-        <div>
-          <button className="btn btn-primary">Job</button>
-        </div>
-        <div>
-          <button className="btn btn-primary">Technician</button>
-        </div>
-      </div> */}
     </div>
   );
 };
